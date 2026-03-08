@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Block Blast — расширенная версия</title>
+
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: radial-gradient(circle, #101b3d, #02040c);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    transition: background-image 0.3s;
+  }
+  h1 {
+    margin: 10px;
+    font-size: 36px;
+    background: linear-gradient(45deg, #00eaff, #ff00ff);
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+  #hud {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  /* КРАСИВЫЕ КНОПКИ */
+  button {
+    border: none;
+    padding: 10px 20px;
+    border-radius: 40px;
+    background: linear-gradient(45deg, #00eaff, #ff00ff);
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 234, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 5px;
+  }
+  button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 25px rgba(255, 0, 255, 0.7);
+    background: linear-gradient(45deg, #ff00ff, #00eaff);
+  }
+  button:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 10px rgba(0, 234, 255, 0.8);
+  }
+  /* КРАСИВЫЕ КНОПКИ ВЫБОРА ФАЙЛА */
+  label:has(input[type="file"]) {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 40px;
+    background: linear-gradient(45deg, #00eaff, #ff00ff);
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 234, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 5px;
+  }
+  label:has(input[type="file"]):hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 25px rgba(255, 0, 255, 0.7);
+    background: linear-gradient(45deg, #ff00ff, #00eaff);
+  }
+  label:has(input[type="file"]):active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 10px rgba(0, 234, 255, 0.8);
+  }
+  /* Скрываем оригинальный input, оставляя его доступным для клика */
+  label:has(input[type="file"]) input[type="file"] {
+    width: 0;
+    height: 0;
+    opacity: 0;
+    position: absolute;
+    z-index: -1;
+  }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+    width: 92vw;
+    max-width: 420px;
+    aspect-ratio: 1;
+    background: #0c1736;
+    padding: 8px;
+    border-radius: 14px;
+  }
+  .cell {
+    background: #0f1a35;
+    border-radius: 6px;
+  }
+  .filled {
+    background: linear-gradient(145deg, #00eaff, #ff00ff);
+    box-shadow: 0 0 10px #00eaff;
+  }
+  .preview {
+    background: #00eaff55;
+  }
+  #pieces {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    max-width: 420px;
+    margin-top: 15px;
+  }
+  .piece {
+    display: grid;
+    gap: 3px;
+    touch-action: none;
+    cursor: pointer;
+  }
+  .block {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    background: linear-gradient(145deg, #00eaff, #ff00ff);
+    transition: background 0.2s;
+  }
+  .panel {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .box {
+    background: #111a3c;
+    padding: 25px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 800px;  /* увеличено */
+    width: 90%;
+    max-height: 80vh;  /* увеличено */
+    overflow-y: auto;
+  }
+  .box h3 {
+    margin-top: 0;
+  }
+  .box input, .box button {
+    margin: 5px;
+  }
+  .color-row {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 15px 0;
+  }
+  .color-row label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 14px;
+  }
+  .snow {
+    position: fixed;
+    top: -10px;
+    background: white;
+    border-radius: 50%;
+    opacity: 0.8;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  hr {
+    border-color: #334;
+    margin: 20px 0;
+  }
+  #mainMenu .box {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  #mainMenu button {
+    font-size: 18px;
+    padding: 12px;
+  }
+
+  /* НОВЫЙ ЛЭЙАУТ ДЛЯ НАСТРОЕК: ВКЛАДКИ СЛЕВА */
+  .settings-layout {
+    display: flex;
+    gap: 20px;
+    text-align: left;
+  }
+  .settings-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 120px;
+    border-right: 1px solid #334;
+    padding-right: 15px;
+  }
+  .settings-tabs .tab-button {
+    background: transparent;
+    border: 2px solid #00eaff;
+    color: #00eaff;
+    padding: 10px 15px;
+    border-radius: 30px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    text-align: center;
+    margin: 0;
+  }
+  .settings-tabs .tab-button.active {
+    background: #00eaff;
+    color: #111a3c;
+  }
+  .settings-content {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 60vh;
+    padding-right: 5px;
+  }
+  .tab-pane {
+    display: none;
+  }
+  .tab-pane.active {
+    display: block;
+  }
+
+  /* ДОБАВЛЕНО: стили для зон перетаскивания файлов */
+  .file-dropzone {
+    position: relative;
+    transition: all 0.2s ease;
+  }
+  .file-dropzone.dragover {
+    outline: 3px dashed #00eaff;
+    background: rgba(0, 234, 255, 0.2);
+    transform: scale(1.02);
+  }
+</style>
+</head>
+<body>
+
+<!-- ГЛАВНОЕ МЕНЮ -->
+<div id="mainMenu" class="panel" style="display: flex;">
+  <div class="box">
+    <h1>BLOCK BLAST</h1>
+    <button id="startGameBtn">НАЧАТЬ ИГРУ</button>
+    <button id="menuSettingsBtn">НАСТРОЙКИ</button>
+    <button id="loadGameBtn">ЗАГРУЗИТЬ СОХРАНЁННОЕ</button>
+  </div>
+</div>
+
+<!-- ИГРОВОЙ ИНТЕРФЕЙС -->
+<h1>BLOCK BLAST</h1>
+
+<div id="hud">
+  <div>Счёт: <span id="score">0</span></div>
+  <div>Рекорд: <span id="best">0</span></div>
+  <div>Комбо: <span id="combo">0</span></div>
+  <button onclick="openSettings()">Настройки</button>
+  <button onclick="openMainMenu()">Меню</button>
+</div>
+
+<div id="board" class="board"></div>
+<div id="pieces"></div>
+
+<!-- ПАНЕЛЬ НАСТРОЕК (С ВЕРТИКАЛЬНЫМИ ВКЛАДКАМИ) -->
+<div id="settings" class="panel">
+  <div class="box">
+    <h3>НАСТРОЙКИ</h3>
+
+    <div class="settings-layout">
+      <!-- Вертикальные вкладки слева -->
+      <div class="settings-tabs">
+        <button class="tab-button active" data-tab="tab1">Управление</button>
+        <button class="tab-button" data-tab="tab2">Оформление</button>
+        <button class="tab-button" data-tab="tab3">Прочее</button>
+      </div>
+
+      <!-- Содержимое вкладок справа -->
+      <div class="settings-content">
+        <div id="tab1" class="tab-pane active">
+          <h4>Управление</h4>
+          <button onclick="setMode('drag')">Drag</button>
+          <button onclick="setMode('tap')">Tap</button>
+        </div>
+
+        <div id="tab2" class="tab-pane">
+          <h4>Цвета градиента блоков</h4>
+          <div class="color-row">
+            <label>Цвет 1 <input type="color" id="color1" value="#00eaff"></label>
+            <label>Цвет 2 <input type="color" id="color2" value="#ff00ff"></label>
+            <label>Неон <input type="color" id="neonColor" value="#00eaff"></label>
+          </div>
+          <button onclick="applyGradient()">Применить градиент</button>
+
+          <h4>Эффекты (снег)</h4>
+          <label><input type="checkbox" id="snowCheck"> Включить снег</label>
+
+          <h4>Свои изображения</h4>
+          <!-- ДОБАВЛЕН КЛАСС file-dropzone -->
+          <label class="file-dropzone">Фото на блоки <input type="file" id="blockImageUpload" accept="image/*"></label>
+          <br>
+          <label class="file-dropzone">Фон игры <input type="file" id="bgImageUpload" accept="image/*"></label>
+        </div>
+
+        <div id="tab3" class="tab-pane">
+          <h4>Музыка</h4>
+          <input type="range" id="volume" min="0" max="1" step="0.01" value="0.3">
+          <br>
+          <!-- ДОБАВЛЕН КЛАСС file-dropzone -->
+          <label class="file-dropzone">Загрузить свою музыку <input type="file" id="musicUpload" accept="audio/*"></label>
+
+          <h4>Сброс</h4>
+          <button onclick="resetSettings()">Сбросить звуки и цвета</button>
+          <button onclick="resetBackground()">Сбросить фон</button>
+          <button onclick="resetBlocks()">Сбросить блоки</button>
+
+          <h4>Резервное копирование</h4>
+          <button onclick="exportBackup()">Экспорт backup</button>
+          <button onclick="importBackup()">Импорт backup</button>
+          <input type="file" id="importBackupFile" accept=".json,application/json" style="display:none">
+
+          <h4>Диагностика</h4>
+          <button onclick="openTerminal()">Терминал</button>
+          <button onclick="downloadLogs()">Скачать логи игры</button>
+        </div>
+      </div>
+    </div>
+
+    <br><br>
+    <button onclick="closeSettings()">Закрыть</button>
+  </div>
+</div>
+
+<!-- ЭКРАН GAME OVER -->
+<div id="gameover" class="panel">
+  <div class="box">
+    <h2>Game Over</h2>
+    <p>Счёт: <span id="finalScore"></span></p>
+    <p>Рекорд: <span id="finalBest"></span></p>
+    <button onclick="restart()">Играть снова</button>
+  </div>
+</div>
+
+<!-- НОВАЯ ПАНЕЛЬ ТЕРМИНАЛА -->
+<div id="terminalPanel" class="panel">
+  <div class="box">
+    <h3>ТЕРМИНАЛ</h3>
+    <div id="logContent" style="background:#000; color:#0f0; padding:10px; max-height:300px; overflow-y:auto; font-family:monospace; text-align:left;"></div>
+    <button onclick="closeTerminal()">Закрыть</button>
+  </div>
+</div>
+
+<!-- АУДИО -->
+<audio id="music" loop>
+  <source src="https://cdn.pixabay.com/audio/2022/10/25/audio_9465a9bb7a.mp3">
+</audio>
+
+<script>
+(function() {
+  // ---------- Инициализация ----------
+  const size = 10;
+  const board = document.getElementById('board');
+  const piecesDiv = document.getElementById('pieces');
+  let grid = [];
+  let score = 0;
+  let combo = 0;
+  let best = localStorage.getItem('bb_best') || 0;
+  document.getElementById('best').textContent = best;
+
+  let mode = 'drag';
+  let selectedPiece = null;
+
+  // Музыка
+  const music = document.getElementById('music');
+  const volume = document.getElementById('volume');
+  music.volume = 0.3;
+  volume.oninput = () => music.volume = volume.value;
+  // Автостарт музыки после первого клика
+  document.body.addEventListener('click', () => music.play().catch(() => {}), { once: true });
+
+  // Создание клеток доски
+  for (let i = 0; i < size * size; i++) {
+    let c = document.createElement('div');
+    c.className = 'cell';
+    c.onclick = () => {
+      if (mode === 'tap' && selectedPiece) placeTap(selectedPiece, i);
+    };
+    board.appendChild(c);
+    grid.push(c);
+  }
+
+  // Фигуры (добавлена новая фигура — квадрат 3x3)
+  const shapes = [
+    [[1,1,1]],
+    [[1],[1],[1]],
+    [[1,1],[1,1]],
+    [[1,1,1],[0,1,0]],
+    [[1,0],[1,1]],
+    [[0,1],[1,1]],
+    [[1,1,1],[1,1,1],[1,1,1]] // новая фигура
+  ];
+
+  // ---------- СНЕГ ----------
+  let snowActive = false;
+  function createSnow() {
+    if (!snowActive) return;
+    for (let i = 0; i < 30; i++) {
+      let flake = document.createElement('div');
+      flake.className = 'snow';
+      flake.style.left = Math.random() * 100 + '%';
+      flake.style.width = flake.style.height = (Math.random() * 6 + 2) + 'px';
+      flake.style.animation = `fall ${Math.random() * 5 + 5}s linear infinite`;
+      flake.style.animationDelay = Math.random() * 5 + 's';
+      document.body.appendChild(flake);
+    }
+    if (!document.querySelector('#snowKeyframes')) {
+      const style = document.createElement('style');
+      style.id = 'snowKeyframes';
+      style.textContent = `
+        @keyframes fall {
+          0% { transform: translateY(-10px); }
+          100% { transform: translateY(100vh); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+  function removeSnow() {
+    document.querySelectorAll('.snow').forEach(el => el.remove());
+  }
+  function toggleSnow(enable) {
+    snowActive = enable;
+    if (enable) createSnow();
+    else removeSnow();
+    saveToCookie();
+  }
+  document.getElementById('snowCheck').addEventListener('change', (e) => {
+    toggleSnow(e.target.checked);
+  });
+
+  // ---------- ГРАДИЕНТ И НЕОН ----------
+  function applyGradient(color1, color2, neonColor) {
+    color1 = color1 || document.getElementById('color1').value;
+    color2 = color2 || document.getElementById('color2').value;
+    neonColor = neonColor || document.getElementById('neonColor').value;
+    const style = document.querySelector('#dynamicBlockStyle') || (() => {
+      const s = document.createElement('style');
+      s.id = 'dynamicBlockStyle';
+      document.head.appendChild(s);
+      return s;
+    })();
+    style.textContent = `
+      .block, .filled {
+        background: linear-gradient(145deg, ${color1}, ${color2}) !important;
+      }
+      .filled {
+        box-shadow: 0 0 10px ${neonColor} !important;
+      }
+    `;
+    saveToCookie();
+  }
+
+  // ---------- ЗАГРУЗКА ИЗОБРАЖЕНИЙ ----------
+  document.getElementById('blockImageUpload').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      const style = document.querySelector('#blockImageStyle') || (() => {
+        const s = document.createElement('style');
+        s.id = 'blockImageStyle';
+        document.head.appendChild(s);
+        return s;
+      })();
+      style.textContent = `
+        .block, .filled {
+          background: url('${url}') center/cover !important;
+        }
+      `;
+      saveToCookie();
+    }
+  });
+
+  document.getElementById('bgImageUpload').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      document.body.style.backgroundImage = `url('${url}')`;
+      document.body.style.backgroundSize = 'cover';
+      saveToCookie();
+    }
+  });
+
+  document.getElementById('musicUpload').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      music.src = url;
+      music.play().catch(() => {});
+      saveToCookie();
+    }
+  });
+
+  // ---------- СБРОС ----------
+  function resetBackground() {
+    document.body.style.backgroundImage = '';
+    document.body.style.background = 'radial-gradient(circle, #101b3d, #02040c)';
+    saveToCookie();
+  }
+
+  function resetBlocks() {
+    document.querySelector('#blockImageStyle')?.remove();
+    applyGradient();
+    saveToCookie();
+  }
+
+  function resetSettings() {
+    document.getElementById('color1').value = '#00eaff';
+    document.getElementById('color2').value = '#ff00ff';
+    document.getElementById('neonColor').value = '#00eaff';
+    applyGradient('#00eaff', '#ff00ff', '#00eaff');
+
+    document.querySelector('#blockImageStyle')?.remove();
+    document.body.style.backgroundImage = '';
+    document.body.style.background = 'radial-gradient(circle, #101b3d, #02040c)';
+
+    music.src = 'https://cdn.pixabay.com/audio/2022/10/25/audio_9465a9bb7a.mp3';
+    music.volume = 0.3;
+    volume.value = 0.3;
+
+    document.getElementById('snowCheck').checked = false;
+    toggleSnow(false);
+
+    saveToCookie();
+  }
+
+  // ---------- СОХРАНЕНИЕ В COOKIE ----------
+  function saveToCookie() {
+    const state = {
+      score, combo, best, mode, snowActive,
+      color1: document.getElementById('color1').value,
+      color2: document.getElementById('color2').value,
+      neonColor: document.getElementById('neonColor').value,
+      volume: music.volume,
+      board: grid.map(cell => cell.classList.contains('filled')),
+      pieces: [...piecesDiv.children].map(p => JSON.parse(p.dataset.shape))
+    };
+    document.cookie = 'bb_state=' + encodeURIComponent(JSON.stringify(state)) + ';path=/;max-age=31536000';
+  }
+
+  // ---------- ЗАГРУЗКА ИЗ COOKIE ----------
+  function loadFromCookie() {
+    const match = document.cookie.match(/bb_state=([^;]+)/);
+    if (!match) return;
+    try {
+      const state = JSON.parse(decodeURIComponent(match[1]));
+      score = state.score || 0;
+      combo = state.combo || 0;
+      best = state.best || 0;
+      mode = state.mode || 'drag';
+      document.getElementById('score').textContent = score;
+      document.getElementById('combo').textContent = combo;
+      document.getElementById('best').textContent = best;
+
+      grid.forEach((cell, i) => {
+        if (state.board && state.board[i]) cell.classList.add('filled');
+        else cell.classList.remove('filled');
+      });
+
+      if (state.pieces && state.pieces.length) {
+        piecesDiv.innerHTML = '';
+        state.pieces.forEach(shape => addPieceToBoard(shape));
+      } else {
+        spawn();
+      }
+
+      if (state.color1 && state.color2 && state.neonColor) {
+        document.getElementById('color1').value = state.color1;
+        document.getElementById('color2').value = state.color2;
+        document.getElementById('neonColor').value = state.neonColor;
+        applyGradient(state.color1, state.color2, state.neonColor);
+      }
+      if (state.snowActive !== undefined) {
+        document.getElementById('snowCheck').checked = state.snowActive;
+        toggleSnow(state.snowActive);
+      }
+      if (state.volume !== undefined) {
+        music.volume = state.volume;
+        volume.value = state.volume;
+      }
+    } catch (e) {}
+  }
+
+  function addPieceToBoard(shape) {
+    let piece = document.createElement('div');
+    piece.className = 'piece';
+    piece.dataset.shape = JSON.stringify(shape);
+    piece.style.gridTemplateColumns = `repeat(${shape[0].length},22px)`;
+
+    shape.forEach(r => {
+      r.forEach(v => {
+        let b = document.createElement('div');
+        if (v) b.className = 'block';
+        piece.appendChild(b);
+      });
+    });
+
+    if (mode === 'drag') drag(piece);
+    piece.onclick = () => {
+      if (mode === 'tap') {
+        selectedPiece = piece;
+        document.querySelectorAll('.piece').forEach(p => p.style.opacity = 0.4);
+        piece.style.opacity = 1;
+      }
+    };
+    piecesDiv.appendChild(piece);
+  }
+
+  function spawn() {
+    piecesDiv.innerHTML = '';
+    for (let i = 0; i < 3; i++) {
+      let shape = randomShape();
+      addPieceToBoard(shape);
+    }
+    saveToCookie();
+  }
+
+  function randomShape() {
+    return shapes[Math.floor(Math.random() * shapes.length)];
+  }
+
+  function drag(piece) {
+    let shape = JSON.parse(piece.dataset.shape);
+    piece.addEventListener('pointerdown', e => {
+      let move = (ev) => showPreview(shape, ev);
+      let up = (ev) => {
+        clearPreview();
+        let rect = board.getBoundingClientRect();
+        let cell = rect.width / size;
+        let col = Math.floor((ev.clientX - rect.left) / cell);
+        let row = Math.floor((ev.clientY - rect.top) / cell);
+        if (place(shape, row, col)) {
+          piece.remove();
+          if (piecesDiv.children.length == 0) spawn();
+          checkGameOver();
+        }
+        document.removeEventListener('pointermove', move);
+        document.removeEventListener('pointerup', up);
+      };
+      document.addEventListener('pointermove', move);
+      document.addEventListener('pointerup', up);
+    });
+  }
+
+  let preview = [];
+  function showPreview(shape, e) {
+    clearPreview();
+    let rect = board.getBoundingClientRect();
+    let cell = rect.width / size;
+    let col = Math.floor((e.clientX - rect.left) / cell);
+    let row = Math.floor((e.clientY - rect.top) / cell);
+    shape.forEach((r, dy) => {
+      r.forEach((v, dx) => {
+        if (v) {
+          let x = row + dy;
+          let y = col + dx;
+          let i = x * size + y;
+          if (grid[i]) {
+            grid[i].classList.add('preview');
+            preview.push(grid[i]);
+          }
+        }
+      });
+    });
+  }
+
+  function clearPreview() {
+    preview.forEach(c => c.classList.remove('preview'));
+    preview = [];
+  }
+
+  function placeTap(piece, index) {
+    let shape = JSON.parse(piece.dataset.shape);
+    let centerRow = Math.floor(index / size);
+    let centerCol = index % size;
+    let offsetRow = Math.floor(shape.length / 2);
+    let offsetCol = Math.floor(shape[0].length / 2);
+    let row = centerRow - offsetRow;
+    let col = centerCol - offsetCol;
+    if (place(shape, row, col)) {
+      piece.remove();
+      selectedPiece = null;
+      document.querySelectorAll('.piece').forEach(p => p.style.opacity = 1);
+      if (piecesDiv.children.length == 0) spawn();
+      checkGameOver();
+    }
+  }
+
+  function place(shape, row, col) {
+    if (!canPlace(shape, row, col)) return false;
+    shape.forEach((r, dy) => {
+      r.forEach((v, dx) => {
+        if (v) {
+          let i = (row + dy) * size + (col + dx);
+          grid[i].classList.add('filled');
+        }
+      });
+    });
+    score += shape.flat().filter(v => v).length;
+    document.getElementById('score').textContent = score;
+    checkLines();
+    saveToCookie();
+    return true;
+  }
+
+  function canPlace(shape, row, col) {
+    let ok = true;
+    shape.forEach((r, dy) => {
+      r.forEach((v, dx) => {
+        if (v) {
+          let x = row + dy;
+          let y = col + dx;
+          let i = x * size + y;
+          if (x < 0 || y < 0 || x >= size || y >= size || grid[i].classList.contains('filled')) ok = false;
+        }
+      });
+    });
+    return ok;
+  }
+
+  function checkLines() {
+    let cleared = 0;
+    for (let r = 0; r < size; r++) {
+      let full = true;
+      for (let c = 0; c < size; c++)
+        if (!grid[r * size + c].classList.contains('filled')) full = false;
+      if (full) {
+        for (let c = 0; c < size; c++)
+          grid[r * size + c].classList.remove('filled');
+        cleared++;
+      }
+    }
+    for (let c = 0; c < size; c++) {
+      let full = true;
+      for (let r = 0; r < size; r++)
+        if (!grid[r * size + c].classList.contains('filled')) full = false;
+      if (full) {
+        for (let r = 0; r < size; r++)
+          grid[r * size + c].classList.remove('filled');
+        cleared++;
+      }
+    }
+    if (cleared) {
+      combo++;
+      score += cleared * 100 * combo;
+    } else {
+      combo = 0;
+    }
+    document.getElementById('combo').textContent = combo;
+    document.getElementById('score').textContent = score;
+    if (score > best) {
+      best = score;
+      localStorage.setItem('bb_best', best);
+      document.getElementById('best').textContent = best;
+    }
+    saveToCookie();
+  }
+
+  function checkGameOver() {
+    let shapesLeft = [...piecesDiv.children].map(p => JSON.parse(p.dataset.shape));
+    let possible = false;
+    for (let shape of shapesLeft) {
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          if (canPlace(shape, r, c)) possible = true;
+        }
+      }
+    }
+    if (!possible) {
+      document.getElementById('finalScore').textContent = score;
+      document.getElementById('finalBest').textContent = best;
+      document.getElementById('gameover').style.display = 'flex';
+    }
+  }
+
+  // ---------- УПРАВЛЕНИЕ МЕНЮ ----------
+  window.openSettings = () => {
+    document.getElementById('settings').style.display = 'flex';
+    document.getElementById('mainMenu').style.display = 'none';
+  };
+  window.closeSettings = () => {
+    document.getElementById('settings').style.display = 'none';
+  };
+  window.openMainMenu = () => {
+    document.getElementById('mainMenu').style.display = 'flex';
+  };
+  window.setMode = (m) => {
+    mode = m;
+    spawn();
+    closeSettings();
+  };
+  window.restart = () => location.reload();
+
+  window.resetBackground = resetBackground;
+  window.resetBlocks = resetBlocks;
+  window.resetSettings = resetSettings;
+
+  // ---------- BACKUP ----------
+  window.exportBackup = function() {
+    const state = {
+      score, combo, best, mode, snowActive,
+      color1: document.getElementById('color1').value,
+      color2: document.getElementById('color2').value,
+      neonColor: document.getElementById('neonColor').value,
+      volume: music.volume,
+      board: grid.map(cell => cell.classList.contains('filled')),
+      pieces: [...piecesDiv.children].map(p => JSON.parse(p.dataset.shape))
+    };
+    const dataStr = JSON.stringify(state, null, 2);
+    const blob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'blockblast_backup.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  window.importBackup = function() {
+    document.getElementById('importBackupFile').click();
+  };
+
+  document.getElementById('importBackupFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const state = JSON.parse(ev.target.result);
+        restoreState(state);
+      } catch (ex) {
+        alert('Ошибка загрузки файла');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  function restoreState(state) {
+    score = state.score || 0;
+    combo = state.combo || 0;
+    best = state.best || 0;
+    mode = state.mode || 'drag';
+    document.getElementById('score').textContent = score;
+    document.getElementById('combo').textContent = combo;
+    document.getElementById('best').textContent = best;
+
+    grid.forEach((cell, i) => {
+      if (state.board && state.board[i]) cell.classList.add('filled');
+      else cell.classList.remove('filled');
+    });
+
+    if (state.pieces && state.pieces.length) {
+      piecesDiv.innerHTML = '';
+      state.pieces.forEach(shape => addPieceToBoard(shape));
+    } else {
+      spawn();
+    }
+
+    if (state.color1) document.getElementById('color1').value = state.color1;
+    if (state.color2) document.getElementById('color2').value = state.color2;
+    if (state.neonColor) document.getElementById('neonColor').value = state.neonColor;
+    applyGradient(state.color1, state.color2, state.neonColor);
+
+    if (state.snowActive !== undefined) {
+      document.getElementById('snowCheck').checked = state.snowActive;
+      toggleSnow(state.snowActive);
+    }
+    if (state.volume !== undefined) {
+      music.volume = state.volume;
+      volume.value = state.volume;
+    }
+
+    saveToCookie();
+  }
+
+  document.getElementById('startGameBtn').addEventListener('click', () => {
+    document.getElementById('mainMenu').style.display = 'none';
+    spawn();
+  });
+  document.getElementById('menuSettingsBtn').addEventListener('click', () => {
+    openSettings();
+  });
+  document.getElementById('loadGameBtn').addEventListener('click', () => {
+    loadFromCookie();
+    document.getElementById('mainMenu').style.display = 'none';
+  });
+
+  volume.addEventListener('input', saveToCookie);
+
+  document.querySelector('button[onclick="applyGradient()"]').addEventListener('click', () => {
+    applyGradient();
+  });
+
+  loadFromCookie();
+
+  // ========== НОВЫЙ КОД: ЛОГИРОВАНИЕ, ТЕРМИНАЛ, СКАЧИВАНИЕ ЛОГОВ ==========
+  // Массив для хранения логов
+  let logs = [];
+
+  // Функция добавления записи в лог
+  function addLog(level, ...args) {
+    let msg = args.map(arg => {
+      if (typeof arg === 'object') {
+        try { return JSON.stringify(arg); } catch { return String(arg); }
+      }
+      return String(arg);
+    }).join(' ');
+    let timestamp = new Date().toLocaleTimeString();
+    logs.push(`[${timestamp}] [${level}] ${msg}`);
+  }
+
+  // Перехват console.log, console.error, console.warn
+  const originalLog = console.log;
+  console.log = function(...args) {
+    addLog('LOG', ...args);
+    originalLog.apply(console, args);
+  };
+
+  const originalError = console.error;
+  console.error = function(...args) {
+    addLog('ERROR', ...args);
+    originalError.apply(console, args);
+  };
+
+  const originalWarn = console.warn;
+  console.warn = function(...args) {
+    addLog('WARN', ...args);
+    originalWarn.apply(console, args);
+  };
+
+  // Глобальный обработчик ошибок
+  window.onerror = function(message, source, lineno, colno, error) {
+    addLog('UNCAUGHT', `${message} at ${source}:${lineno}:${colno}`);
+  };
+
+  // Функция открытия терминала
+  window.openTerminal = function() {
+    let terminalPanel = document.getElementById('terminalPanel');
+    let logContent = document.getElementById('logContent');
+    // Заполняем содержимое логов
+    logContent.innerHTML = logs.map(line => `<div>${line}</div>`).join('') || '<div>Логов пока нет</div>';
+    terminalPanel.style.display = 'flex';
+  };
+
+  // Функция закрытия терминала
+  window.closeTerminal = function() {
+    document.getElementById('terminalPanel').style.display = 'none';
+  };
+
+  // Функция скачивания логов
+  window.downloadLogs = function() {
+    let logText = logs.join('\n');
+    let blob = new Blob([logText], { type: 'text/plain' });
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    a.href = url;
+    a.download = 'blockblast_logs.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ---------- Переключение вкладок в настройках ----------
+  const tabButtons = document.querySelectorAll('#settings .tab-button');
+  const tabPanes = document.querySelectorAll('#settings .tab-pane');
+
+  tabButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabButtons.forEach(b => b.classList.remove('active'));
+      tabPanes.forEach(p => p.classList.remove('active'));
+
+      btn.classList.add('active');
+      const tabId = btn.getAttribute('data-tab');
+      document.getElementById(tabId).classList.add('active');
+    });
+  });
+
+  // ---------- ДОБАВЛЕНО: ПЕРЕТАСКИВАНИЕ ФАЙЛОВ ----------
+  function setupFileDropzones() {
+    const dropzones = document.querySelectorAll('.file-dropzone');
+    dropzones.forEach(zone => {
+      // Предотвращаем стандартное поведение браузера для dragover и drop
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+      });
+
+      zone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+      });
+
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+
+        // Находим input внутри этой зоны
+        const input = zone.querySelector('input[type="file"]');
+        if (!input) return;
+
+        // Проверяем, что тип файла соответствует accept
+        const accept = input.getAttribute('accept');
+        if (accept && !file.type.match(accept.replace(/,/g, '|').replace(/\*/g, '.*'))) {
+          alert('Неподдерживаемый тип файла');
+          return;
+        }
+
+        // Программно устанавливаем файл в input
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        input.files = dataTransfer.files;
+
+        // Диспатчим событие change, чтобы сработал существующий обработчик
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    });
+  }
+
+  // Вызываем после загрузки DOM
+  setupFileDropzones();
+
+})();
+</script>
+</body>
+</html>
